@@ -1,47 +1,69 @@
-const fs = require('fs')
-const path = require('path')
+const fs = require('fs');
+const path = require('path');
 
-const dataFilePath = path.join(__dirname, 'items.json')
-// const items = require('./fakeDb')
+const dataFilePath = path.join(__dirname, 'items.json');
 
 class Item {
-  constructor(name, price){
-    this.name = name
-    this.price = price
-
-    items.push(this)
+  constructor(name, price) {
+    this.name = name;
+    this.price = price;
+    Item.saveItem(this);
   }
 
-  static findAll(){
-    return items
-  }
-
-  static update(name, data){
-    let foundItem = Item.find(name)
-    if (foundItem === undefined){
-      throw { message: "Not Found", status: 404}
+  static readData() {
+    try {
+      const data = fs.readFileSync(dataFilePath, 'utf8');
+      return JSON.parse(data);
+    } catch (err) {
+      return [];
     }
-    foundItem.name = data.name
-    foundItem.price = data.price
-
-    return foundItem
   }
 
-  static find(name){
-    const foundItem = items.find(item => item.name === name)
-    if (foundItem === undefined){
-      throw { message: "Not Found", status: 404}
-    }
-    return foundItem
+  static writeData(data) {
+    fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2));
   }
 
-  static remove(name){
-    let foundIdx = items.findIndex(item => item.name === name)
-    if (foundIdx === -1){
-      throw { message: "Not Found", status: 404 }
+  static findAll() {
+    return this.readData();
+  }
+
+  static find(name) {
+    const items = this.readData();
+    const foundItem = items.find(item => item.name === name);
+    if (!foundItem) {
+      throw { message: 'Not Found', status: 404 };
     }
-    items.splice(foundIdx, 1)
+    return foundItem;
+  }
+
+  static saveItem(item) {
+    const items = this.readData();
+    items.push(item);
+    this.writeData(items);
+  }
+
+  static update(name, data) {
+    const items = this.readData();
+    const itemIndex = items.findIndex(item => item.name === name);
+    if (itemIndex === -1) {
+      throw { message: 'Not Found', status: 404 };
+    }
+    if (data.name) items[itemIndex].name = data.name;
+    if (data.price !== undefined) items[itemIndex].price = data.price;
+
+    this.writeData(items);
+    return items[itemIndex];
+  }
+
+  static remove(name) {
+    let items = this.readData();
+    const itemIndex = items.findIndex(item => item.name === name);
+    if (itemIndex === -1) {
+      throw { message: 'Not Found', status: 404 };
+    }
+    items.splice(itemIndex, 1);
+    this.writeData(items);
   }
 }
 
-module.exports = Item
+module.exports = Item;
